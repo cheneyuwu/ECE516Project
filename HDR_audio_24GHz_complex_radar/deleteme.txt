@@ -1,0 +1,19 @@
+First step is Choleski factorization of covariance matrix as outlined on Page 38 of the course textbook, "Intelligent Image Processing", John Wiley and Sons.
+
+You can easily reproduce the results shown on Page 2755 of this paper:
+http://wearcam.org/chirplet.pdf
+i.e. spectrogram of the sound from the falling object, and then the two falling objects...
+
+Next is chirplet transform on the HDR data.
+
+Chirplet transform with HDR audio is a new window into the world of what's around us.
+
+Try also simply listening on stereo headphones with one ear to the real part and the other ear to the imaginary part, before and after calibration with the Choleski factorization to listen to the spatialization and then gain insight into the system dynamics of radar as a sensor.
+
+Next is to pick up on warblets and warblet transform,
+https://ieeexplore.ieee.org/document/118914
+and then throw in the machine learning with LEM (Mann) and MPLEM (Richard Cui).
+
+ACT = Adaptive Chirplet Transform, should be easy in Python.
+
+
