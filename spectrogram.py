@@ -11,14 +11,13 @@ noise_power = 0.01 * fs / 2
 
 time = np.arange(N) / float(fs)
 
-mod = 500*np.cos(2*np.pi*0.25*time)
-carrier = amp * np.sin(2*np.pi*3e3*time + mod)
+mod = 500 * np.cos(2 * np.pi * 0.25 * time)
+carrier = amp * np.sin(2 * np.pi * 3e3 * time + mod)
 
 noise = np.random.normal(scale=np.sqrt(noise_power), size=time.shape)
-noise *= np.exp(-time/5)
+noise *= np.exp(-time / 5)
 
 x = carrier + noise
-
 
 
 x = amp * time + 1j * amp * time
@@ -36,6 +35,6 @@ x = amp * time + 1j * amp * time
 
 f, t, Sxx = signal.spectrogram(x, fs, return_onesided=False)
 plt.pcolormesh(t, fftshift(f), fftshift(Sxx, axes=0))
-plt.ylabel('Frequency [Hz]')
-plt.xlabel('Time [sec]')
+plt.ylabel("Frequency [Hz]")
+plt.xlabel("Time [sec]")
 plt.show()
