@@ -51,18 +51,20 @@ data["dropping_1_object_AC100"] = np.stack((csvdata[1, ...], csvdata[1 + 4, ...]
 data["dropping_1_object_AC1000"] = np.stack((csvdata[2, ...], csvdata[2 + 4, ...]))
 data["dropping_1_object_AC10000"] = np.stack((csvdata[3, ...], csvdata[3 + 4, ...]))
 
+
+
 # Generate some arbitrary data
 fs = 1e4
 N = 1e4
 time = np.arange(N) / float(fs)
-sig = transforms.q_chirplet(time, 0.5, 250, 500, 0.1)  + transforms.q_chirplet(time, 0.5, -250, -500, 0.1)
+sig = transforms.q_chirplet(time, 0.5, 250, 500, 0.1)#  + transforms.q_chirplet(time, 0.5, -250, -500, 0.1)
 # Select data of format (2, n) real and imaginary
 data["Signal: Chirplet tc=0.5, fc=250, c=500, delta_t=0.1"] = np.stack((sig.real, sig.imag))
 
 
 # Working on data
-# data_name = "Signal: Chirplet tc=0.5, fc=250, c=500, delta_t=0.1"
-data_name = "dropping_1_object_AC100"
+data_name = "Signal: Chirplet tc=0.5, fc=250, c=500, delta_t=0.1"
+# data_name = "dropping_1_object_AC100"
 data = data[data_name]
 
 
@@ -96,63 +98,63 @@ ax.set_ylabel("Frequency [Hz]")
 ax.set_xlabel("Time [sec]")
 ax.set_title("Spectrogram, Uncalibrated")
 
-# # generate chirp
-# sample = 200
+# generate chirp
+sample = 200
 
-# fb = np.linspace(-1000, 1000, sample)
-# fe = np.linspace(-1000, 1000, sample)
-# fb, fe = np.meshgrid(fb, fe)
-# window = transforms.q_chirplet_fbe(time, 0.5, fb, fe, 0.1)
-# res = np.inner(np.conj(window), data[0] + 1j * data[1])
-# ax = axs[0][3]
-# ax.contour(fb, fe, np.absolute(res))
-# ax.set_xlabel("f begin")
-# ax.set_ylabel("f end")
-# ax.set_title("Freq Begin vs Freq End, Uncalibrated")
+fb = np.linspace(-1000, 1000, sample)
+fe = np.linspace(-1000, 1000, sample)
+fb, fe = np.meshgrid(fb, fe)
+window = transforms.q_chirplet_fbe(time, 0.5, fb, fe, 0.1)
+res = np.inner(np.conj(window), data[0] + 1j * data[1])
+ax = axs[0][3]
+ax.contour(fb, fe, np.absolute(res))
+ax.set_xlabel("f begin")
+ax.set_ylabel("f end")
+ax.set_title("Freq Begin vs Freq End, Uncalibrated")
 
-# fc = np.linspace(-1000, 1000, sample)
-# c = np.linspace(-1000, 1000, sample)
-# fc, c = np.meshgrid(fc, c)
-# window = transforms.q_chirplet(time, 0.5, fc, c, 0.1)
-# res = np.inner(np.conj(window), data[0] + 1j * data[1])
-# ax = axs[0][4]
-# ax.contour(fc, c, np.absolute(res))
-# ax.set_xlabel("center freq")
-# ax.set_ylabel("slope")
-# ax.set_title("Center Freq vs Slope, Uncalibrated")
-
-
-# Step 1: calibrate data
-# subtract mean
-mean = data.mean(axis=1, keepdims=True)
-data = data - mean
-# center the data
-cov = np.cov(data)
-L = np.linalg.cholesky(cov)
-data = np.linalg.inv(L) @ data
+fc = np.linspace(-1000, 1000, sample)
+c = np.linspace(-1000, 1000, sample)
+fc, c = np.meshgrid(fc, c)
+window = transforms.q_chirplet(time, 0.5, fc, c, 0.1)
+res = np.inner(np.conj(window), data[0] + 1j * data[1])
+ax = axs[0][4]
+ax.contour(fc, c, np.absolute(res))
+ax.set_xlabel("center freq")
+ax.set_ylabel("slope")
+ax.set_title("Center Freq vs Slope, Uncalibrated")
 
 
-# plot uncalibrated data
-ax = axs[1][0]
-ax.plot(data[0, ...], label="real", color="r")
-ax.plot(data[1, ...], label="imag", color="g")
-ax.set_xlabel("sample index")
-ax.set_ylabel("sample value")
-ax.set_title("Radar Data, Calibrated")
-ax.legend()
+# # Step 1: calibrate data
+# # subtract mean
+# mean = data.mean(axis=1, keepdims=True)
+# data = data - mean
+# # center the data
+# cov = np.cov(data)
+# L = np.linalg.cholesky(cov)
+# data = np.linalg.inv(L) @ data
 
-ax = axs[1][1]
-ax.scatter(data[0, ...], data[1, ...])
-ax.set_xlabel("real")
-ax.set_ylabel("imag")
-ax.set_title("Real vs Imag, Calibrated")
 
-f, t, Sxx = signal.spectrogram(data[0, ...] + 1j * data[1, ...], return_onesided=False, fs=fs)
-ax = axs[1][2]
-ax.pcolormesh(t, fftshift(f), np.log(fftshift(Sxx, axes=0)))
-ax.set_ylabel("Frequency [Hz]")
-ax.set_xlabel("Time [sec]")
-ax.set_title("Spectrogram, Calibrated")
+# # plot uncalibrated data
+# ax = axs[1][0]
+# ax.plot(data[0, ...], label="real", color="r")
+# ax.plot(data[1, ...], label="imag", color="g")
+# ax.set_xlabel("sample index")
+# ax.set_ylabel("sample value")
+# ax.set_title("Radar Data, Calibrated")
+# ax.legend()
 
-plt.savefig(data_name + ".pdf")
+# ax = axs[1][1]
+# ax.scatter(data[0, ...], data[1, ...])
+# ax.set_xlabel("real")
+# ax.set_ylabel("imag")
+# ax.set_title("Real vs Imag, Calibrated")
+
+# f, t, Sxx = signal.spectrogram(data[0, ...] + 1j * data[1, ...], return_onesided=False, fs=fs)
+# ax = axs[1][2]
+# ax.pcolormesh(t, fftshift(f), np.log(fftshift(Sxx, axes=0)))
+# ax.set_ylabel("Frequency [Hz]")
+# ax.set_xlabel("Time [sec]")
+# ax.set_title("Spectrogram, Calibrated")
+
+plt.savefig(data_name + ".jpg")
 plt.show()
