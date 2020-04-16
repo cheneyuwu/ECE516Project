@@ -31,22 +31,22 @@ plt.rc("figure", titlesize=MEDIUM_SIZE)  # fontsize of the figure title
 plt.rc("legend", fontsize=SMALL_SIZE)  # legend fontsize
 
 
-# # Load data from file
+# Load data from file
 fs = 1e3  # the assumed sample frequency of all data
 data_dir = osp.join(os.getcwd(), "HDR_audio_24GHz_complex_radar")
 data_dict = dict()  # a dictionary containing different gains for HDR measurement
 
-for file_name in ["spin_warblet"]:
+for file_name in ["dropping_1_object"]:
     csvdata = np.empty((8, 0))
     with open(osp.join(data_dir, file_name + ".txt"), newline="") as f:
         reader = csv.reader(f, delimiter="\t")
         for row in reader:
             row = np.array([float(r) for r in row[:8]]).reshape(-1, 1)
             csvdata = np.append(csvdata, row, axis=1)  # data of shape [8, number of samples]
-    data_dict[file_name + "_DC10"] = np.stack((csvdata[0, ...], csvdata[0 + 4, ...]))
-    data_dict[file_name + "_AC100"] = np.stack((csvdata[1, ...], csvdata[1 + 4, ...]))
-    data_dict[file_name + "_AC1000"] = np.stack((csvdata[2, ...], csvdata[2 + 4, ...]))
-    data_dict[file_name + "_AC10000"] = np.stack((csvdata[3, ...], csvdata[3 + 4, ...]))
+    data_dict[file_name + "_DC10"] = csvdata[0, ...] + 1j * csvdata[0 + 4, ...]
+    data_dict[file_name + "_AC100"] = csvdata[1, ...] + 1j * csvdata[1 + 4, ...]
+    data_dict[file_name + "_AC1000"] = csvdata[2, ...] + 1j * csvdata[2 + 4, ...]
+    data_dict[file_name + "_AC10000"] = csvdata[3, ...] + 1j * csvdata[3 + 4, ...]
     # ###
     # # normalize data
     # for k, data in data_dict.items():
@@ -60,49 +60,56 @@ for file_name in ["spin_warblet"]:
     data_dict[file_name + "_Combined"] = np.mean([k for k in data_dict.values()], axis=0)
 
 # Generate some arbitrary data
-N = 1e3
-time = np.arange(N) / float(fs)
-sig = transforms.q_chirplet(time, 0.5, 100, 100, np.sqrt(2) / 3)
-# Select data of format (2, n) real and imaginary
-data_dict["Signal: Chirplet tc=0.5, fc=250, c=500, delta_t=0.1"] = np.stack((sig.real, sig.imag))
+duration = 5.0  # 5 second
+time = np.arange(duration * fs) / float(fs)
+# Rest Clutter
+data_dict["Walking"] = transforms.q_chirp(time, duration / 2, -100, 0)
+# Car Hazard
+data_dict["Car_Hazard"] = data_dict["Walking"] + transforms.q_chirp(time, duration / 2, 200, 20)
+# Floating Iceberg Fragment
+data_dict["Floating_Iceberg_Fragment"] = transforms.warble(time, duration / 2, 0, 0.5, 200, 0)
 
 
 # Working on data
-# data_name = "Signal: Chirplet tc=0.5, fc=250, c=500, delta_t=0.1"
-data_name = "spin_warblet_DC10"
+data_name = "dropping_1_object_Combined"
 data = data_dict[data_name]
 
-data = data[:, 5000:10000]
+# Update duration time
+data = data[4500:5500]  # adjust duration
+time = np.arange(data.shape[0]) / float(fs)
+duration = len(time) / fs
 
-time = np.arange(data.shape[1]) / float(fs)
-
+# Generate Plots
+#########################################################################
 
 nrow = 2
 ncoln = 4
 fig, axs = plt.subplots(nrow, ncoln)
+if nrow == 1:
+    axs = [axs]
 fig.suptitle(data_name, fontsize=BIGGER_SIZE)
 fig.set_size_inches(ncoln * 5, nrow * 5)
-fig.subplots_adjust(left=0.05, right=0.95, bottom=0.1, top=0.9, wspace=0.4, hspace=0.4)  # gym envs
+fig.subplots_adjust(left=0.05, right=0.95, bottom=0.15, top=0.9, wspace=0.4, hspace=0.4)
 
 # Step 0
 # visualize radar data
 ax = axs[0][0]
-ax.plot(data[0, ...], label="real", color="r")
-ax.plot(data[1, ...], label="imag", color="g")
-ax.set_xlabel("sample index")
-ax.set_ylabel("sample value")
+ax.plot(data.real, label="Real", color="r")
+ax.plot(data.imag, label="Imag", color="g")
+ax.set_xlabel("Sample Index")
+ax.set_ylabel("Sample Value")
 ax.set_title("Radar Data, Uncalibrated")
 ax.legend()
 
 ax = axs[0][1]
-ax.scatter(data[0, ...], data[1, ...])
-ax.set_xlabel("real")
-ax.set_ylabel("imag")
+ax.scatter(data.real, data.imag)
+ax.set_xlabel("Real")
+ax.set_ylabel("Imag")
 ax.set_title("Real vs Imag, Uncalibrated")
 
 
 f, t, Sxx = signal.spectrogram(
-    data[0, ...] + 1j * data[1, ...],
+    data,
     return_onesided=False,
     fs=fs,
     window=("tukey", 0.25),
@@ -112,103 +119,117 @@ f, t, Sxx = signal.spectrogram(
     # nperseg=64,
     # noverlap=48,
 )
+intensity = fftshift(Sxx, axes=0)
+intensity = np.log10(fftshift(Sxx, axes=0))
 ax = axs[0][2]
-ax.pcolormesh(t, fftshift(f), np.log10(fftshift(Sxx, axes=0)))
+ax.pcolormesh(t, fftshift(f), intensity)
 ax.set_ylabel("Frequency [Hz]")
 ax.set_xlabel("Time [sec]")
 ax.set_title("Spectrogram, Uncalibrated")
 
-# generate chirp
+# Chirplet transform analysis
 sample = 200
 xy_range = int(fs / 2)  # half of the sampling frequency to satisfy Nyquist boundary, for chirplet transform
 
 # Chirplet Transform adaptation
-# fb = np.linspace(-xy_range, xy_range, sample)
-# fe = np.linspace(-xy_range, xy_range, sample)
-# fb, fe = np.meshgrid(fb, fe)
-# window = transforms.q_chirplet_fbe(time, 0.5, fb, fe, np.sqrt(2) / 3)  # dt set to np.sqrt(2) / 3 so that 3sigma is 1
-# res = np.inner(np.conj(window), data[0] + 1j * data[1])
-# ax = axs[0][3]
-# ax.contour(fb, fe, np.absolute(res))
-# ax.set_xlabel("f begin")
-# ax.set_ylabel("f end")
-# ax.set_title("Freq Begin vs Freq End, Uncalibrated")
-
-# Warblet Transform adaptation
-bm = np.linspace(-xy_range, xy_range, sample)
-fm = np.linspace(0.1, 1, sample)
-fm, bm = np.meshgrid(fm, bm)
-window = transforms.warblet(time, 0, 0, fm, bm, 0, 5 * np.sqrt(2) / 3)
-res = np.inner(np.conj(window), data[0] + 1j * data[1])
+fb = np.linspace(-xy_range, xy_range, sample)
+fe = np.linspace(-xy_range, xy_range, sample)
+fb, fe = np.meshgrid(fb, fe)
+window = transforms.q_chirplet_fbe(
+    time, duration / 2, fb, fe, np.sqrt(2) / 3
+)  # dt set to np.sqrt(2) / 3 so that 3*sigma is 1
+res = np.inner(np.conj(window), data)
+res = np.absolute(res)
+res = np.clip(res, 80, np.inf)
 ax = axs[0][3]
-ax.contour(fm, bm, np.absolute(res))
-ax.set_xlabel("frequency of modulation")
-ax.set_ylabel("amplitude")
-ax.set_title("Frequency of Modulation vs Amplitude, Uncalibrated")
+ax.contour(fb, fe, res)
+ax.set_xlabel("Frequency Begin")
+ax.set_ylabel("Frequency End")
+ax.set_title("Frequency Begin vs Frequency End, Uncalibrated")
 
+# # Warblet Transform adaptation
+# bm = np.linspace(-xy_range, xy_range, sample)
+# fm = np.linspace(0.1, 1, sample)
+# fm, bm = np.meshgrid(fm, bm)
+# window = transforms.warblet(time, duration / 2, 0, fm, bm, 0, np.sqrt(2) / 3)
+# res = np.inner(np.conj(window), data)
+# res = np.absolute(res)
+# res = np.clip(res, 100, np.inf)
+# ax = axs[0][3]
+# ax.contour(fm, bm, res)
+# ax.set_xlabel("Frequency of Modulation")
+# ax.set_ylabel("Amplitude of Modulation")
+# ax.set_title("Frequency vs Amplitude of Modulation, Uncalibrated")
+
+
+# return
 
 # Step 1: calibrate data
 # subtract mean
-mean = data.mean(axis=1, keepdims=True)
+mean = data.mean(axis=0, keepdims=True)
 data = data - mean
+data = np.array((data.real, data.imag))
 # center the data
 cov = np.cov(data)
 L = np.linalg.cholesky(cov)
 data = np.linalg.inv(L) @ data
+data = data[0, ...] + 1j * data[1, ...]
 
 
 # plot uncalibrated data
 ax = axs[1][0]
-ax.plot(data[0, ...], label="real", color="r")
-ax.plot(data[1, ...], label="imag", color="g")
-ax.set_xlabel("sample index")
-ax.set_ylabel("sample value")
+ax.plot(data.real, label="real", color="r")
+ax.plot(data.imag, label="imag", color="g")
+ax.set_xlabel("Sample Index")
+ax.set_ylabel("Sample Value")
 ax.set_title("Radar Data, Calibrated")
 ax.legend()
 
 ax = axs[1][1]
-ax.scatter(data[0, ...], data[1, ...])
+ax.scatter(data.real, data.imag)
 ax.set_xlabel("real")
 ax.set_ylabel("imag")
 ax.set_title("Real vs Imag, Calibrated")
 
 f, t, Sxx = signal.spectrogram(
-    data[0, ...] + 1j * data[1, ...],
+    data,
     return_onesided=False,
     fs=fs,
     window=("tukey", 0.25),
     nperseg=128,
     noverlap=112,  #  window=("tukey", 0.25), nperseg=128, noverlap=112,
 )
+intensity = fftshift(Sxx, axes=0)
+intensity = np.log10(fftshift(Sxx, axes=0))
 ax = axs[1][2]
-ax.pcolormesh(t, fftshift(f), np.log10(fftshift(Sxx, axes=0)))
+ax.pcolormesh(t, fftshift(f), intensity)
 ax.set_ylabel("Frequency [Hz]")
 ax.set_xlabel("Time [sec]")
 ax.set_title("Spectrogram, Calibrated")
 
 # Chirplet Transform adaptation
-# fb = np.linspace(-xy_range, xy_range, sample)
-# fe = np.linspace(-xy_range, xy_range, sample)
-# fb, fe = np.meshgrid(fb, fe)
-# window = transforms.q_chirplet_fbe(time, 0.5, fb, fe, np.sqrt(2) / 3)
-# res = np.inner(np.conj(window), data[0] + 1j * data[1])
-# ax = axs[1][3]
-# ax.contour(fb, fe, np.absolute(res))
-# ax.set_xlabel("f begin")
-# ax.set_ylabel("f end")
-# ax.set_title("Freq Begin vs Freq End, Calibrated")
-
-# Warblet Transform adaptation
-bm = np.linspace(-xy_range, xy_range, sample)
-fm = np.linspace(0.1, 1, sample)
-fm, bm = np.meshgrid(fm, bm)
-window = transforms.warblet(time, 0, 0, fm, bm, 0, 5 * np.sqrt(2) / 3)
-res = np.inner(np.conj(window), data[0] + 1j * data[1])
+fb = np.linspace(-xy_range, xy_range, sample)
+fe = np.linspace(-xy_range, xy_range, sample)
+fb, fe = np.meshgrid(fb, fe)
+window = transforms.q_chirplet_fbe(time, duration / 2, fb, fe, duration / 2 * np.sqrt(2) / 3)
+res = np.inner(np.conj(window), data)
 ax = axs[1][3]
-ax.contour(fm, bm, np.absolute(res))
-ax.set_xlabel("frequency of modulation")
-ax.set_ylabel("amplitude")
-ax.set_title("Frequency of Modulation vs Amplitude, Calibrated")
+ax.contour(fb, fe, np.absolute(res))
+ax.set_xlabel("f begin")
+ax.set_ylabel("f end")
+ax.set_title("Freq Begin vs Freq End, Calibrated")
 
-plt.savefig(data_name + ".jpg")
+# # Warblet Transform adaptation
+# # bm = np.linspace(-xy_range, xy_range, sample)
+# # fm = np.linspace(0.1, 1, sample)
+# # fm, bm = np.meshgrid(fm, bm)
+# # window = transforms.warblet(time, duration / 2, 0, fm, bm, 0, 5 * np.sqrt(2) / 3)
+# # res = np.inner(np.conj(window), data)
+# # ax = axs[1][3]
+# # ax.contour(fm, bm, np.absolute(res))
+# # ax.set_xlabel("frequency of modulation")
+# # ax.set_ylabel("amplitude")
+# # ax.set_title("Frequency of Modulation vs Amplitude, Calibrated")
+
+plt.savefig(data_name + ".pdf", format="pdf")
 plt.show()
