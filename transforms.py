@@ -1,5 +1,6 @@
 import numpy as np
 
+import collections
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -12,21 +13,34 @@ def convert_to_nparray(v):
     v = np.asarray(v)
     if v.shape == ():
         v = v.reshape(1)
+        return v
     return v
 
 
+def is_sequence(obj):
+    return isinstance(obj, (collections.Sequence, np.ndarray))
+
+
 def gaussian_env(t, tc, dt):
-    return 1 / (np.sqrt(np.sqrt(np.pi) * dt)) * np.exp(-1 / 2 * ((t - tc) / dt) ** 2)
+    is_seq = is_sequence(tc) | is_sequence(dt)
+    tc = convert_to_nparray(tc)[..., np.newaxis]
+    dt = convert_to_nparray(dt)[..., np.newaxis]
+    t = t[np.newaxis, ...]
+    ret = 1 / (np.sqrt(np.sqrt(np.pi) * dt)) * np.exp(-1 / 2 * ((t - tc) / dt) ** 2)
+    if not is_seq:
+        ret = ret[0, ...]
+    return ret
 
 
 def q_chirp(t, tc, fc, c):
+    is_seq = is_sequence(tc) | is_sequence(fc) | is_sequence(c)
     tc = convert_to_nparray(tc)[..., np.newaxis]
     fc = convert_to_nparray(fc)[..., np.newaxis]
     c = convert_to_nparray(c)[..., np.newaxis]
     t = t[np.newaxis, ...]
     assert len(t.shape) == 2
     ret = np.exp(1j * 2 * np.pi * (c * ((t - tc) ** 2) + fc * (t - tc)))
-    if ret.shape[0] == 1:
+    if not is_seq:
         ret = ret[0, ...]
     return ret
 
@@ -36,6 +50,7 @@ def wave(t, tc, fc):
 
 
 def warble(t, tc, fc, fm, bm, pm):
+    is_seq = is_sequence(tc) | is_sequence(fc) | is_sequence(fm) | is_sequence(bm) | is_sequence(pm)
     tc = convert_to_nparray(tc)[..., np.newaxis]
     fc = convert_to_nparray(fc)[..., np.newaxis]
     fm = convert_to_nparray(fm)[..., np.newaxis]
@@ -44,7 +59,7 @@ def warble(t, tc, fc, fm, bm, pm):
     t = t[np.newaxis, ...]
     assert len(t.shape) == 2
     ret = np.exp(1j * (2 * np.pi * fc * (t - tc) + bm / fm * np.sin(2 * np.pi * fm * (t - tc) + pm)))
-    if ret.shape[0] == 1:
+    if not is_seq:
         ret = ret[0, ...]
     return ret
 
