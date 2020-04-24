@@ -9,48 +9,66 @@ time = np.arange(duration * fs) / float(fs)
 data = {}
 
 # Stabbing
-mu_t = [duration / 6, duration * 2 / 3]
-mu_f = [-50.0, 50.0]
-c = [40.0, 150.0]
-sigma_t = [np.sqrt(2) * 100 / 3, np.sqrt(2) * 100 / 3]
-signal = transforms.q_chirplet(time, mu_t, mu_f, c, sigma_t)
-signal[0, int(1 * len(time) / 3):] = 0.0
-signal[1, :int(1 * len(time) / 3)] = 0.0
-stabbing_signal = np.sum(signal, axis=0)
+mu_t = [duration / 2, duration / 4, duration / 4 * 3]
+mu_f = [-100, 0.0, 150.0]
+c = [0.0, 100.0, 200.0]
+sigma_t = [np.sqrt(2) * 10 / 3, np.sqrt(2) * 10 / 3, np.sqrt(2) * 10 / 3]
+a = [1.0, 1.0, 1.5]
+signal = np.array(a)[..., np.newaxis] * transforms.q_chirplet(time, mu_t, mu_f, c, sigma_t)
+signal[1, int(1 * len(time) / 2):] = 0.0
+signal[2, :int(1 * len(time) / 2)] = 0.0
+noise1 = np.random.normal(scale=np.sqrt(0.5), size=time.shape)
+noise2 = np.random.normal(scale=np.sqrt(0.5), size=time.shape)
+stabbing_signal = np.sum(signal, axis=0) + noise1 + 1j * noise2
 
 # Pick Pocket
-mu_t = [duration / 4, duration * 3 / 4]
-mu_f = [50.0, -120.0]
-c = [200.0, -200.0]
-sigma_t = [np.sqrt(2) * 100 / 3, np.sqrt(2) * 100 / 3]
-signal = transforms.q_chirplet(time, mu_t, mu_f, c, sigma_t)
-signal[0, int(1 * len(time) / 3):] = 0.0
-signal[1, :int(1 * len(time) / 3)] = 0.0
-pickpocket_signal = np.sum(signal, axis=0)
+mu_t = [duration / 2, duration / 4, duration / 4 * 3]
+mu_f = [-100, 0.0, -50.0]
+c = [0.0, 100.0, -200.0]
+sigma_t = [np.sqrt(2) * 10 / 3, np.sqrt(2) * 10 / 3, np.sqrt(2) * 10 / 3]
+a = [1.0, 1.5, 1.5]
+signal = np.array(a)[..., np.newaxis] * transforms.q_chirplet(time, mu_t, mu_f, c, sigma_t)
+signal[1, int(1 * len(time) / 2):] = 0.0
+signal[2, :int(1 * len(time) / 2)] = 0.0
+noise1 = np.random.normal(scale=np.sqrt(0.5), size=time.shape)
+noise2 = np.random.normal(scale=np.sqrt(0.5), size=time.shape)
+pickpocket_signal = np.sum(signal, axis=0) + noise1 + 1j * noise2
 
-# Start Running
-mu_t = [duration / 6, duration / 2, duration * 5 / 6]
-mu_f = [-50.0, -120.0, -200.0]
-c = [0.0, -280.0, -0.0]
-sigma_t = [np.sqrt(2) * 100 / 3, np.sqrt(2) * 100 / 3, np.sqrt(2) * 100 / 3]
-signal = transforms.q_chirplet(time, mu_t, mu_f, c, sigma_t)
-signal[0, int(1 * len(time) / 3):] = 0.0
-signal[1, :int(1 * len(time) / 3)] = 0.0
-signal[1, int(2 * len(time) / 3):] = 0.0
-signal[2, :int(2 * len(time) / 3)] = 0.0
-running_signal = np.sum(signal, axis=0)
+# Start Walking
+mu_t = [duration / 4, duration / 4 * 3]
+mu_f = [-80.0, -180.0]
+c = [-160.0, -0.0]
+sigma_t = [np.sqrt(2) * 2 / 3, np.sqrt(2) * 2 / 3]
+a = [1.0, 1.0]
+signal = np.array(a)[..., np.newaxis] * transforms.q_chirplet(time, mu_t, mu_f, c, sigma_t)
+signal[0, int(1 * len(time) / 2):] = 0.0
+signal[1, :int(1 * len(time) / 2)] = 0.0
+noise1 = np.random.normal(scale=np.sqrt(0.5), size=time.shape)
+noise2 = np.random.normal(scale=np.sqrt(0.5), size=time.shape)
+running_signal = np.sum(signal, axis=0) + noise1 + 1j * noise2
+
+# mu_t = [duration / 6, duration / 2, duration * 5 / 6]
+# mu_f = [-50.0, -120.0, -200.0]
+# c = [0.0, -280.0, -0.0]
+# sigma_t = [np.sqrt(2) * 100 / 3, np.sqrt(2) * 100 / 3, np.sqrt(2) * 100 / 3]
+# signal = transforms.q_chirplet(time, mu_t, mu_f, c, sigma_t)
+# signal[0, int(1 * len(time) / 3):] = 0.0
+# signal[1, :int(1 * len(time) / 3)] = 0.0
+# signal[1, int(2 * len(time) / 3):] = 0.0
+# signal[2, :int(2 * len(time) / 3)] = 0.0
+# running_signal = np.sum(signal, axis=0)
 
 mu_t = [duration / 2]
-mu_f = [100]
+mu_f = [70]
 c = [100.0]
 sigma_t = [0.3 * np.sqrt(2) / 3]
 signal = transforms.q_chirplet(time, mu_t, mu_f, c, sigma_t)
 chirplet_signal = np.sum(signal, axis=0)
 
 mu_t = [duration / 2]
-mu_f = [100]
+mu_f = [70]
 sigma_t = [0.3 * np.sqrt(2) / 3]
-signal = transforms.warblet(time, mu_t, mu_f, 2.0, 50.0, np.pi / 2, sigma_t)
+signal = transforms.warblet(time, mu_t, mu_f, 2.0, 40.0, np.pi / 2, sigma_t)
 warblet_signal = np.sum(signal, axis=0)
 
 mu_t = [duration / 2]
@@ -67,7 +85,7 @@ signal = transforms.warble(time, mu_t, mu_f, 2.0, 70.0, np.pi / 2)
 warble_signal = np.sum(signal, axis=0)
 
 # Test 1
-mu_t = [duration * 2 / 8, duration * 6 / 8]
+mu_t = [duration * 1 / 4, duration * 3 / 4]
 mu_f = [-30, 80]
 c = [-70.0, -80.0]
 sigma_t = [0.2 * np.sqrt(2) / 3, 0.2 * np.sqrt(2) / 3]
@@ -82,7 +100,7 @@ sigma_t = [0.1 * np.sqrt(2) / 3, 0.1 * np.sqrt(2) / 3, 0.2 * np.sqrt(2) / 3]
 signal = transforms.q_chirplet(time, mu_t, mu_f, c, sigma_t)
 test3_signal = np.sum(signal, axis=0)
 
-data["Running"] = {"signal": running_signal, "ncenter": 3}
+data["Start Walking"] = {"signal": running_signal, "ncenter": 3}
 data["PickPocket"] = {"signal": pickpocket_signal, "ncenter": 2}
 data["Stabbing"] = {"signal": stabbing_signal, "ncenter": 2}
 

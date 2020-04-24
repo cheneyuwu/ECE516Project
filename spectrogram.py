@@ -13,26 +13,53 @@ time = np.arange(N) / float(fs)
 # amp = 2 * np.sqrt(2)
 # noise_power = 0.01 * fs / 2
 
+# # mod = 500 * np.cos(2 * np.pi * 0.25 * time)
+# # carrier = amp * np.sin(2 * np.pi * 3e3 * time + mod)
 
-# mod = 500 * np.cos(2 * np.pi * 0.25 * time)
-# carrier = amp * np.sin(2 * np.pi * 3e3 * time + mod)
+# # noise = np.random.normal(scale=np.sqrt(noise_power), size=time.shape)
+# # noise *= np.exp(-time / 5)
 
+# # x = carrier + noise
+# # x = carrier
+# # x = amp * np.cos(2*np.pi*3e3*time) + 1j * amp * np.sin(2*np.pi*3e3*time)
+
+# # x = transforms.wavelet(time, 0.5, 0, 0.1)
+# # x = transforms.wave(time, 0, 0)
+x = np.ones_like(time) + 1j * np.ones_like(time)
+
+# plt.plot(x.real)
+# plt.show()
+
+# f, t, Sxx = signal.spectrogram(x, fs, return_onesided=False)
+# plt.pcolormesh(t, fftshift(f), fftshift(Sxx, axes=0))
+# plt.ylabel("Frequency [Hz]")
+# plt.xlabel("Time [sec]")
+# plt.show()
+
+# import numpy as np
+# from scipy import signal
+# import matplotlib.pyplot as plt
+
+# # Generate data
+# fs = 10e3
+# N = 5e4
+# amp = 4 * np.sqrt(2)
+# noise_power = 0.01 * fs / 2
+# time = np.arange(N) / float(fs)
+# mod = 800 * np.cos(2 * np.pi * 0.2 * time)
+# carrier = amp * np.sin(2 * np.pi * time + mod)
 # noise = np.random.normal(scale=np.sqrt(noise_power), size=time.shape)
 # noise *= np.exp(-time / 5)
-
 # x = carrier + noise
-# x = carrier
-# x = amp * np.cos(2*np.pi*3e3*time) + 1j * amp * np.sin(2*np.pi*3e3*time)
 
-# x = transforms.wavelet(time, 0.5, 0, 0.1)
-# x = transforms.wave(time, 0, 0)
-x = np.ones_like(time)
-
-plt.plot(x.real)
+Pxx, freqs, bins, im = plt.specgram(x, NFFT=1028, Fs=fs)
+print(freqs)
+# x1, x2, y1, y2 = plt.axis()
+# plt.axis((x1, x2, 0, 200))
 plt.show()
 
-f, t, Sxx = signal.spectrogram(x, fs, return_onesided=False)
-plt.pcolormesh(t, fftshift(f), fftshift(Sxx, axes=0))
-plt.ylabel("Frequency [Hz]")
-plt.xlabel("Time [sec]")
-plt.show()
+# f, t, Sxx = signal.spectrogram(x, fs, nfft=1028)
+# plt.pcolormesh(t, f[0:20], Sxx[0:20])
+# plt.ylabel('Frequency [Hz]')
+# plt.xlabel('Time [sec]')
+# plt.show()
