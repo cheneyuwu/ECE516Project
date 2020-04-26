@@ -17,19 +17,18 @@ time = np.arange(duration * fs) / float(fs)
 nrow = 2
 ncoln = 2
 fig, axs = plt.subplots(nrow, ncoln)
-# fig.suptitle("LEM")
 fig.set_size_inches(ncoln * 5, nrow * 4)
-fig.subplots_adjust(left=0.1, right=0.95, bottom=0.05, top=0.95, wspace=0.3, hspace=0.15)
+fig.subplots_adjust(left=0.12, right=0.95, bottom=0.05, top=0.95, wspace=0.35, hspace=0.20)
 
 # Plot Spectrogram
 signal_time = sim_radar_data.data["Chirplet"]["signal"]
-plot.plot_signal(axs[0][0], time, signal_time, fs, title="\"Chirplet\" Time Series")
-plot.plot_spectrogram(axs[1][0], signal_time, fs, title="\"Chirplet\" Spectrogram")
+plot.plot_signal(axs[0][0], time, signal_time, fs, title="Q-Chirplet Time Series")
+plot.plot_spectrogram(axs[1][0], signal_time, fs, title="Q-Chirplet Spectrogram")
 
 # Plot Spectrogram
 signal_time = sim_radar_data.data["Warblet"]["signal"]
-plot.plot_signal(axs[0][1], time, signal_time, fs, title="\"Warblet\" Time Series")
-plot.plot_spectrogram(axs[1][1], signal_time, fs, title="\"Warblet\" Spectrogram")
+plot.plot_signal(axs[0][1], time, signal_time, fs, title="W-Chirplet Time Series")
+plot.plot_spectrogram(axs[1][1], signal_time, fs, title="W-Chirplet Spectrogram")
 
 plt.savefig("VisualizeChirplets.pdf", format="pdf")
 plt.show()
