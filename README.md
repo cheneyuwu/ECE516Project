@@ -1,25 +1,41 @@
-# HDR Radar Data Analysis
+# Time-Frequency Analysis of Doppler Radar Signal Using Chirplet Transform
 
-The pictures below are organized as follows:
+By Yuchen Wu and Yingxue Wang
 
-- top row: results using radar data without calibration or toy data
-- bottom row: results using radar data with calibration
+## [Report](./YuchenWu_YingxueWang_ChirpletTransform.pdf)
 
-- column 1: plot of the real and imaginary part to the samples
-- column 2: correlation between real and imaginary data
-- column 3: spectrogram
-- column 4: Freq-Freq plot with chirplet expansion (Figure 7 left in this paper: http://wearcam.org/chirplet.pdf)
-- column 5: Slope-Center Freq plot with chirplet expansion (Figure 6 left in this paper: http://wearcam.org/chirplet.pdf)
+## Reproducing results in the report
 
-## Toy data:
-- the data is sampled from a chirplet between `t=0 to 1` with sample frequency `1e4`. The chirplet parameters are shown in the title. Refer to Equation 3 in this paper: http://wearcam.org/chirplet.pdf.
-- the result looks good to me.
+This repository uses python, and requires python>=3, numpy, scipy and matplotlib.
 
-![Toy Chirplet Signal Plot](./toychirplet.jpg)
+`python chirplets_demonstration.py` -> generate Figure 1 in the report
 
-## Dropping 1 object data
+[VisualizeChirplets](./figures/../Figures/VisualizeChirplets.pdf)
 
-- the spectrogram uses log-scale intensity.
-- There's a huge peak in the dataset, and seems like the spectrogram only shows some frequency intensity there. Did not see a slope in the spectrogram
+`python lem_demonstration.py` -> generate Figure 2
 
-![Toy Chirplet Signal Plot](./dropping_1_object_AC100.jpg)
+[LEMTrue](./Figures/LEMTrue.pdf)
+[LEMInit](./Figures/LEMInit.pdf)
+[LEM5Iter](./Figures/LEM5Iter.pdf)
+[LEM10Iter](./Figures/LEM10Iter.pdf)
+
+`python real_radar_data_analysis.py` -> generate Figure 3, 5 and 7
+
+[Dropping1ObjectCalibration](./Figures/Dropping1ObjectCalibration.pdf)
+
+[Dropping1Object](./Figures/Dropping1Object.pdf)
+[Dropping2Objects](./Figures/Dropping2Objects.pdf)
+
+[SpinWarblet](./Figures/SpinWarblet.pdf)
+[Ruler8Inch](./Figures/Ruler8Inch.pdf)
+[Ruler16Inch](./Figures/Ruler16Inch.pdf)
+
+`python sim_radar_data_analysis.py` -> generate Figure 4
+
+[StartWalking](./Figures/StartWalking.pdf)
+[Stabbing](./Figures/Stabbing.pdf)
+[PickPocket](./Figures/PickPocket.pdf)
+
+`python sim_warblets_analysis.py` -> generate Figure 6
+
+[WavingSimulation](./Figures/WavingSimulation.pdf)
