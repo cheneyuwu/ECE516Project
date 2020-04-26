@@ -11,7 +11,7 @@ import plot
 import plot_utils
 import sim_radar_data
 import transforms
-from mplem import lem, matching_pursuit, mplem
+from mplem import lem, mp, mplem
 
 data_name = "Visualize LEM"
 data = sim_radar_data.data[data_name]
@@ -23,11 +23,10 @@ signal_time = data["signal"]
 freq = np.fft.fftshift(np.fft.fftfreq(len(time), d=1 / fs))
 signal_freq = np.fft.fftshift(np.fft.fft(signal_time))
 
-ncenter = data["ncenter"]
-
+ncenter = data["ncenter"]  # true number of centers
 results = lem(time, signal_time, 20, ncenter=ncenter)
 
-#############
+# plot true signal
 nrow = 1
 ncoln = 2
 fig, axs = plt.subplots(nrow, ncoln)
@@ -36,13 +35,11 @@ if nrow == 1:
 fig.suptitle("True Signal")
 fig.set_size_inches(ncoln * 5, nrow * 3.5)
 fig.subplots_adjust(left=0.07, right=0.95, bottom=0.15, top=0.78, wspace=0.4, hspace=0.4)
-
-# Plot data
 plot.plot_signal(axs[0][0], time, signal_time, fs, sep=4.0, ylabel="Imag     Real")
 plot.plot_spectrogram(axs[0][1], signal_time, fs)
 plt.savefig("LEMTrue.pdf", format="pdf")
 
-#############
+# plot initial guess
 nrow = 1
 ncoln = 2
 fig, axs = plt.subplots(nrow, ncoln)
@@ -51,16 +48,13 @@ if nrow == 1:
 fig.suptitle("Initial Guess")
 fig.set_size_inches(ncoln * 5, nrow * 3.5)
 fig.subplots_adjust(left=0.07, right=0.95, bottom=0.15, top=0.78, wspace=0.4, hspace=0.4)
-
-# Plot Initial Guess
 mu_t, mu_f, sigma_t, sigma_f, c = results[0]
 fake_signal = np.sum(transforms.q_chirplet(time, mu_t, mu_f, c, np.sqrt(2) * sigma_t), axis=0)
 plot.plot_signal(axs[0][0], time, fake_signal, fs, sep=4.0, ylabel="Imag     Real")
 plot.plot_spectrogram(axs[0][1], fake_signal, fs)
 plt.savefig("LEMInit.pdf", format="pdf")
 
-# Plot Spectrogram
-####################################
+# plot after 5 iterations
 nrow = 1
 ncoln = 2
 fig, axs = plt.subplots(nrow, ncoln)
@@ -76,8 +70,7 @@ plot.plot_signal(axs[0][0], time, fake_signal, fs, sep=4.0, ylabel="Imag     Rea
 plot.plot_spectrogram(axs[0][1], fake_signal, fs)
 plt.savefig("LEM5Iter.pdf", format="pdf")
 
-# Plot Spectrogram
-####################################
+# plot after 10 iterations
 nrow = 1
 ncoln = 2
 fig, axs = plt.subplots(nrow, ncoln)

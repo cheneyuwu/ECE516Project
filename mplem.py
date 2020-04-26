@@ -18,12 +18,14 @@ def signal_momentum(a, b, c, dtf, weight=1.0):
 
 
 def signal_mean(tf, signal, dtf, weight=1.0):
+  """compute mu_t and mu_f"""
   m1 = signal_momentum(signal, tf, signal, dtf, weight)
   m0 = signal_momentum(signal, 1.0, signal, dtf, weight)
   return m1 / m0
 
 
 def signal_stddev(tf, signal, dtf, weight=1.0):
+  """compute sigma_t and sigma_f"""
   m2 = signal_momentum(signal, tf**2, signal, dtf, weight)
   m1 = signal_momentum(signal, tf, signal, dtf, weight)
   m0 = signal_momentum(signal, 1.0, signal, dtf, weight)
@@ -31,19 +33,23 @@ def signal_stddev(tf, signal, dtf, weight=1.0):
 
 
 def mplem(time, signal):
+  """the MPLEM algorithm introduced by Cui and Wong
+  """
+  # sampling frequency and time interval
   fs = (len(time) - 1) / (time[-1] - time[0])
   dt = 1 / fs
 
-  results = []
-
-  # R^0f
+  # initialization
   error = np.inf
-  curr_signal = signal  # approximated results
+  curr_signal = signal  # residual
+  M = 4  # maximum MP iterations
+  N = 100  # maximum LEM iteratons
+  results = []  # chirplet parameters to be returned
 
-  for _ in range(4):
+  for _ in range(M):
 
-    # single chirplet estimation with 1 more chirplet
-    result = matching_pursuit(time, curr_signal)
+    # single chirplet estimation with 1 more chirplet (MP)
+    result = mp(time, curr_signal)
     results.append(result)
 
     # construct new approximated signal
@@ -53,21 +59,18 @@ def mplem(time, signal):
     ],
                            axis=0)
 
-    # mag = signal_momentum(approx_signal, 1.0, curr_signal, dt)
-    # print(np.absolute(mag))
-
+    # calculate residual
     curr_signal = signal - approx_signal
     new_mp_error = np.sum(np.absolute(signal_momentum(curr_signal, 1.0, curr_signal, dt)))
     print("After MP current error: ", new_mp_error)
 
     if error - new_mp_error < 0.01:
-      break
-
+      break  # if error change is too small, stop
     error = new_mp_error
 
-    # multiple chirplets refinement
-    while True:
-      # choose a lem algorithm
+    # multiple chirplets refinement (LEM)
+    for _ in range(N):
+      # choose a lem algorithm (either the one from Cui or from Mann)
       results = lem3(time, signal, np.array(results).T)
       results = lem2(time, signal, results)
 
@@ -79,35 +82,33 @@ def mplem(time, signal):
                              axis=0)
       curr_signal = signal - approx_signal
       lem_new_error = np.sum(np.absolute(signal_momentum(curr_signal, 1.0, curr_signal, dt)))
-      if lem_new_error >= error:
-        break
-
-      error = lem_new_error
       print("After LEM current error: ", lem_new_error)
 
-  results = np.array(results).T
+      if lem_new_error >= error:
+        break  # if error change is too small, stop
+      error = lem_new_error
 
-  return results
+  return np.array(results).T
 
 
-def matching_pursuit(time, signal):
-  """
+def mp(time, signal):
+  """1 iteration of MP
   """
   fs = (len(time) - 1) / (time[-1] - time[0])
   dt = 1 / fs
 
+  # construct a family of chirplets
   c = np.linspace(-fs / 2, fs / 2, int(fs / 4) + 1)
   sigma_t = 2**np.arange(3, 8) / 100.0
   tc = np.linspace(time[0], time[-1], int(fs / 200) + 1)
   fc = np.linspace(-fs / 2, fs / 2, int(fs / 10) + 1)
-
   mp_params = np.array([[i, j] for i in c for j in sigma_t])
 
+  # find the one that best approximates the signal
   mag_best = -np.inf
   for i in tc:
     for j in fc:
       chirp_dict = transforms.q_chirplet(time, i, j, mp_params[:, 0], np.sqrt(2) * mp_params[:, 1])
-
       mag = signal_momentum(chirp_dict, 1.0, signal, dt)
       loc = np.argmax(np.absolute(mag))
       if mag_best < np.absolute(mag)[loc]:
@@ -118,7 +119,8 @@ def matching_pursuit(time, signal):
 
 
 def lem(time, signal, niter=5, ncenter=2):
-  # infer sample frequency from time
+  """LEM algorithm proposed by Mann and Haykin
+  """
   fs = (len(time) - 1) / (time[-1] - time[0])
   signal_time = signal
   dt = 1 / fs
@@ -127,7 +129,7 @@ def lem(time, signal, niter=5, ncenter=2):
   signal_freq = np.fft.fftshift(np.fft.fft(signal_time), axes=-1)
   df = 1 / ((len(freq) - 1) / (freq[-1] - freq[0]))
 
-  # Set initial guesses (we only support up to 3 centers)
+  # set initial guesses (we only support up to 3 centers) -> TUNE THIS!
   if ncenter == 1:
     mu_t = np.array([0.5])
     mu_f = np.array([0.0])
@@ -147,13 +149,9 @@ def lem(time, signal, niter=5, ncenter=2):
     sigma_f = np.array([20.0, 20.0, 20.0])
     c = np.array([0.0, 0.0, 0.0])
 
-  assert mu_t.shape[0] == ncenter
-  assert mu_f.shape[0] == ncenter
-
-  result = [(mu_t, mu_f, sigma_t, sigma_f, c)]
+  results = [(mu_t, mu_f, sigma_t, sigma_f, c)]  # list of estimated parameters from all iterations
 
   for i in range(niter):
-    print("Iteration: ", i)
 
     # compute weight in time
     c_t = transforms.q_chirplet(time, mu_t, mu_f, c, np.sqrt(2) * sigma_t)
@@ -189,14 +187,14 @@ def lem(time, signal, niter=5, ncenter=2):
         best_perm = perm
     c = best_perm * c_abs
 
-    result.append((mu_t, mu_f, sigma_t, sigma_f, c))
-    print("Estimation: ", mu_t, mu_f, sigma_t, sigma_f, c)
+    results.append((mu_t, mu_f, sigma_t, sigma_f, c))
 
-  return result
+  return results
 
 
 def lem2(time, signal, guesses):
-
+  """LEM algorithm proposed by Mann and Haykin, modified so that it can be used in MPLEM
+  """
   fs = (len(time) - 1) / (time[-1] - time[0])
   dt = 1 / fs
   # fft to convert to freq domain
@@ -248,23 +246,22 @@ def lem2(time, signal, guesses):
     new_a = signal_momentum(new_chirplet, 1.0, signal, dt)
 
     new_signal = new_chirplet * new_a
-
     new_error = signal_time - new_signal
-
     error = np.sum(np.absolute(error))
     new_error = np.sum(np.absolute(new_error))
-
     if new_error < error:
-      print("Lem is refining the signal!!!")
+      print("LEM refines the approximation")
       results.append((new_a, new_mu_t, new_mu_f, new_sigma_t, new_sigma_f, new_c))
     else:
+      # LEM cannot refine the approximation, return initial guesses
       results.append((a, mu_t, mu_f, sigma_t, sigma_f, c))
 
   return results
 
 
 def lem3(time, signal, guesses):
-  # infer sample frequency from time
+  """LEM algorithm used by Cui and Wong in MPLEM
+  """
   fs = (len(time) - 1) / (time[-1] - time[0])
   signal_time = signal
   dt = 1 / fs
@@ -313,7 +310,7 @@ def lem3(time, signal, guesses):
   new_chirplets = transforms.q_chirplet(time, new_mu_t, new_mu_f, new_c, np.sqrt(2) * new_sigma_t)
   new_a = signal_momentum(new_chirplets, 1.0, signal_time, dt)
 
-  # compare
+  # compare the approximation before and after refinement, return with better one
   new_signal = np.sum(new_a[..., np.newaxis] * transforms.q_chirplet(time, new_mu_t, new_mu_f, new_c,
                                                                      np.sqrt(2) * new_sigma_t),
                       axis=0)
@@ -323,7 +320,6 @@ def lem3(time, signal, guesses):
   old_signal = np.sum(a[..., np.newaxis] * transforms.q_chirplet(time, mu_t, mu_f, c, np.sqrt(2) * sigma_t), axis=0)
   old_error = signal_time - old_signal
   old_error = np.sum(np.absolute(signal_momentum(old_error, 1.0, old_error, dt)))
-
   if old_error > new_error:
     results = np.array([new_a, new_mu_t, new_mu_f, new_sigma_t, new_sigma_f, new_c]).T
   else:

@@ -22,6 +22,8 @@ def is_sequence(obj):
 
 
 def gaussian_env(t, tc, dt):
+  """construct a gaussian envelop
+  """
   is_seq = is_sequence(tc) | is_sequence(dt)
   tc = convert_to_nparray(tc)[..., np.newaxis]
   dt = convert_to_nparray(dt)[..., np.newaxis]
@@ -32,7 +34,15 @@ def gaussian_env(t, tc, dt):
   return ret
 
 
+def wave(t, tc, fc):
+  """construct a wave
+  """
+  return np.exp(1j * 2 * np.pi * (fc * (t - tc)))
+
+
 def q_chirp(t, tc, fc, c):
+  """construct a q-chirp
+  """
   is_seq = is_sequence(tc) | is_sequence(fc) | is_sequence(c)
   tc = convert_to_nparray(tc)[..., np.newaxis]
   fc = convert_to_nparray(fc)[..., np.newaxis]
@@ -45,11 +55,9 @@ def q_chirp(t, tc, fc, c):
   return ret
 
 
-def wave(t, tc, fc):
-  return np.exp(1j * 2 * np.pi * (fc * (t - tc)))
-
-
 def warble(t, tc, fc, fm, bm, pm):
+  """construct a warbling signal
+  """
   is_seq = is_sequence(tc) | is_sequence(fc) | is_sequence(fm) | is_sequence(bm) | is_sequence(pm)
   tc = convert_to_nparray(tc)[..., np.newaxis]
   fc = convert_to_nparray(fc)[..., np.newaxis]
@@ -64,25 +72,33 @@ def warble(t, tc, fc, fm, bm, pm):
   return ret
 
 
+def wavelet(t, tc, fc, dt):
+  """construct a wavelet
+  """
+  gs_env = gaussian_env(t, tc, dt)
+  wv = wave(t, tc, fc)
+  return gs_env * wv
+
+
 def q_chirplet(t, tc, fc, c, dt):
+  """construct a q-chirplet
+  """
   gs_env = gaussian_env(t, tc, dt)
   cp = q_chirp(t, tc, fc, c)
   return gs_env * cp
 
 
 def q_chirplet_fbe(t, tc, fb, fe, dt):
+  """construct a q-chirplet from beginning and ending frequency
+  """
   c = (fe - fb) / 2 / (3 * dt / np.sqrt(2))
   fc = (fe + fb) / 2
   return q_chirplet(t, tc, fc, c, dt)
 
 
-def wavelet(t, tc, fc, dt):
-  gs_env = gaussian_env(t, tc, dt)
-  wv = wave(t, tc, fc)
-  return gs_env * wv
-
-
 def warblet(t, tc, fc, fm, bm, pm, dt):
+  """construct a warblet
+  """
   gs_env = gaussian_env(t, tc, dt)
   wb = warble(t, tc, fc, fm, bm, pm)
   return gs_env * wb

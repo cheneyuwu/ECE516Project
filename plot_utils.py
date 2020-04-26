@@ -5,7 +5,7 @@ matplotlib.use("TkAgg")  # Can change to 'Agg' for non-interactive mode
 matplotlib.rcParams["pdf.fonttype"] = 42
 matplotlib.rcParams["ps.fonttype"] = 42
 
-# Set Figure sizes
+# set figure sizes
 SMALL_SIZE = 16
 MEDIUM_SIZE = 20
 BIGGER_SIZE = 24

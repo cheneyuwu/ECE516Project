@@ -2,6 +2,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import animation
+from matplotlib.patches import Ellipse
 from scipy import signal, stats
 from scipy.fft import fftshift
 
@@ -9,10 +10,8 @@ import plot
 import plot_utils
 import sim_radar_data
 
-from matplotlib.patches import Ellipse
-
 fs = 1e3
-duration = 1.0  # 5 second
+duration = 1.0
 time = np.arange(duration * fs) / float(fs)
 
 # Create animation
